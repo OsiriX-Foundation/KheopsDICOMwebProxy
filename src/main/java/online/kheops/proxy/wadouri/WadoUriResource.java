@@ -128,8 +128,11 @@ public class WadoUriResource {
             };
 
             try (final Response wadoRSResponse = webTarget.request().header(AUTHORIZATION, accessToken.getHeaderValue()).get()) {
+                final String contentTypeString = wadoRSResponse.getHeaderString(CONTENT_TYPE);
+                LOG.log(SEVERE, "contentTypeString:" + contentTypeString);
                 final String boundary = MediaType.valueOf(wadoRSResponse.getHeaderString(CONTENT_TYPE)).getParameters().get(BOUNDARY_PARAMETER);
                 try (final InputStream inputStream = webTarget.request().header(AUTHORIZATION, accessToken.getHeaderValue()).get(InputStream.class)) {
+                    LOG.log(SEVERE, "boundry is:" + boundary);
                     final MultipartParser multipartParser = new MultipartParser(boundary);
                     multipartParser.parse(inputStream, handler);
                 }
