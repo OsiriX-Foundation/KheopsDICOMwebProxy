@@ -4,7 +4,8 @@ import online.kheops.proxy.id.SeriesID;
 import online.kheops.proxy.tokens.AccessToken;
 import online.kheops.proxy.tokens.AccessTokenException;
 import online.kheops.proxy.tokens.AuthorizationToken;
-import org.dcm4che3.ws.rs.MediaTypes;
+import org.dcm4che3.mime.MultipartInputStream;
+import org.dcm4che3.mime.MultipartParser;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.*;
@@ -15,13 +16,14 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static javax.ws.rs.core.HttpHeaders.*;
 import static javax.ws.rs.core.Response.Status.*;
+import static org.dcm4che3.ws.rs.MediaTypes.APPLICATION_DICOM;
+import static org.glassfish.jersey.media.multipart.Boundary.BOUNDARY_PARAMETER;
 
 @Path("/")
 public class WadoUriResource {
@@ -55,23 +57,27 @@ public class WadoUriResource {
 
     private Response webAccess(AuthorizationToken authorizationToken) {
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
-        URI wadoServiceURI = getParameterURI("online.kheops.pacs.uri");
-
-        WebTarget webTarget = CLIENT.target(wadoServiceURI).path("wado");
+        URI serviceURI = getParameterURI("online.kheops.pacs.uri");
 
         final MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
 
         final List<String> studyInstanceUIDs = queryParameters.get("studyUID");
         if (studyInstanceUIDs == null || studyInstanceUIDs.size() != 1) {
-            throw new WebApplicationException(BAD_REQUEST);
+            throw new BadRequestException("Missing studyUID");
         }
         final List<String> seriesInstanceUIDs = queryParameters.get("seriesUID");
         if (seriesInstanceUIDs == null || seriesInstanceUIDs.size() != 1) {
-            throw new WebApplicationException(BAD_REQUEST);
+            throw new BadRequestException("Missing seriesUID");
+        }
+
+        final List<String> sopInstanceUIDs = queryParameters.get("objectUID");
+        if (sopInstanceUIDs == null || sopInstanceUIDs.size() != 1) {
+            throw new BadRequestException("Missing objectUID");
         }
 
         final String studyInstanceUID = studyInstanceUIDs.get(0);
         final String seriesInstanceUID = seriesInstanceUIDs.get(0);
+        final String sopInstanceUID = sopInstanceUIDs.get(0);
 
         final AccessToken accessToken;
         try {
@@ -89,60 +95,47 @@ public class WadoUriResource {
             throw new InternalServerErrorException("unknown error while getting an access token");
         }
 
-        for (Map.Entry<String, List<String>> parameter: queryParameters.entrySet()) {
-            webTarget = webTarget.queryParam(parameter.getKey(), parameter.getValue().toArray());
-        }
+        final WebTarget webTarget = CLIENT.target(serviceURI)
+                .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances/{SOPInstanceUID}")
+                .resolveTemplate("StudyInstanceUID", studyInstanceUID)
+                .resolveTemplate("SeriesInstanceUID", seriesInstanceUID)
+                .resolveTemplate("SOPInstanceUID", sopInstanceUID);
 
         Invocation.Builder invocationBuilder = webTarget.request();
         invocationBuilder.header(AUTHORIZATION, accessToken.getHeaderValue());
-        if (acceptParam != null) {
-            invocationBuilder.accept(acceptParam);
-        } else {
-            invocationBuilder.accept(MediaTypes.APPLICATION_DICOM);
-        }
 
-        if (acceptCharsetParam != null) {
-            invocationBuilder.header(ACCEPT_CHARSET, acceptCharsetParam);
-        }
-
-        final Response upstreamResponse;
-        try {
-            upstreamResponse = invocationBuilder.get();
-        } catch (ProcessingException e) {
-            LOG.log(SEVERE, "error processing response from upstream", e);
-            throw new WebApplicationException(BAD_GATEWAY);
-        } catch (Exception e) {
-            LOG.log(SEVERE, "unknown error while getting from upstream", e);
-            throw new InternalServerErrorException("unknown error while getting from upstream");
-        }
-
-        if (upstreamResponse.getStatusInfo().getFamily() == Family.SERVER_ERROR) {
-            LOG.log(WARNING, "Sever error from upstream: status" + upstreamResponse.getStatus());
-            throw new WebApplicationException(BAD_GATEWAY);
-        }
 
         StreamingOutput streamingOutput = output -> {
-            try (final InputStream inputStream = upstreamResponse.readEntity(InputStream.class)) {
+            MultipartParser.Handler handler = (int partNumber, MultipartInputStream in) -> {
+                if (partNumber != 1) {
+                    LOG.log(SEVERE, "Unexpected part number:" + partNumber);
+                    throw new IOException("Unexpected part number:" + partNumber);
+                }
+
                 byte[] buffer = new byte[4096];
-                int len = inputStream.read(buffer);
+                int len = in.read(buffer);
                 while (len != -1) {
                     output.write(buffer, 0, len);
-                    len = inputStream.read(buffer);
+                    len = in.read(buffer);
                 }
-            } catch (Exception e) {
+            };
+
+            try (final Response wadoRSResponse = webTarget.request().header(AUTHORIZATION, accessToken.getHeaderValue()).get()) {
+                final String boundary = MediaType.valueOf(wadoRSResponse.getHeaderString(CONTENT_TYPE)).getParameters().get(BOUNDARY_PARAMETER);
+                try (final InputStream inputStream = webTarget.request().header(AUTHORIZATION, accessToken.getHeaderValue()).get(InputStream.class)) {
+                    final MultipartParser multipartParser = new MultipartParser(boundary);
+                    multipartParser.parse(inputStream, handler);
+                }
+            } catch (ResponseProcessingException e) {
+                LOG.log(SEVERE, "ResponseProcessingException status:" + e.getResponse().getStatus(), e);
                 throw new IOException(e);
-            } finally {
-                upstreamResponse.close();
+            } catch (ProcessingException e) {
+                LOG.log(SEVERE, "ProcessingException:", e);
+                throw new IOException(e);
             }
         };
 
-        final CacheControl cacheControl = new CacheControl();
-        cacheControl.setNoCache(true);
-
-        return Response.status(upstreamResponse.getStatus()).entity(streamingOutput)
-                .header(CONTENT_TYPE, upstreamResponse.getHeaderString(CONTENT_TYPE))
-                .cacheControl(cacheControl)
-                .build();
+        return Response.ok(streamingOutput).type(APPLICATION_DICOM).build();
     }
 
     private URI getParameterURI(String parameter) {
