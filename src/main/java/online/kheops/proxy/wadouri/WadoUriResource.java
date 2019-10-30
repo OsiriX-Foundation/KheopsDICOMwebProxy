@@ -56,6 +56,10 @@ public class WadoUriResource {
     }
 
     private Response webAccess(AuthorizationToken authorizationToken) {
+
+        LOG.log(SEVERE, "in wado");
+
+
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
         URI serviceURI = getParameterURI("online.kheops.pacs.uri");
 
@@ -63,15 +67,18 @@ public class WadoUriResource {
 
         final List<String> studyInstanceUIDs = queryParameters.get("studyUID");
         if (studyInstanceUIDs == null || studyInstanceUIDs.size() != 1) {
+            LOG.log(WARNING, "Missing studyUID");
             throw new BadRequestException("Missing studyUID");
         }
         final List<String> seriesInstanceUIDs = queryParameters.get("seriesUID");
         if (seriesInstanceUIDs == null || seriesInstanceUIDs.size() != 1) {
+            LOG.log(WARNING, "Missing seriesUID");
             throw new BadRequestException("Missing seriesUID");
         }
 
         final List<String> sopInstanceUIDs = queryParameters.get("objectUID");
         if (sopInstanceUIDs == null || sopInstanceUIDs.size() != 1) {
+            LOG.log(WARNING, "Missing objectUID");
             throw new BadRequestException("Missing objectUID");
         }
 
