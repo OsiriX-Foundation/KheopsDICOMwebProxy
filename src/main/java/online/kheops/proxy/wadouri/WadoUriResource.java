@@ -120,6 +120,8 @@ public class WadoUriResource {
                     throw new IOException("Unexpected part number:" + partNumber);
                 }
 
+                in.readHeaderParams();
+
                 byte[] buffer = new byte[4096];
                 int len = in.read(buffer);
                 while (len != -1) {
