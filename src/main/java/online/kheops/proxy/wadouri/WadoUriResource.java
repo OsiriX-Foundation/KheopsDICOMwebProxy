@@ -146,6 +146,7 @@ public class WadoUriResource {
                 LOG.log(SEVERE, "ProcessingException:", e);
                 throw new IOException(e);
             }
+            output.flush();
         };
 
         return Response.ok(streamingOutput).type(APPLICATION_DICOM).build();
