@@ -1,21 +1,24 @@
 package online.kheops.proxy.wadors;
 
 import online.kheops.proxy.id.SeriesID;
+import online.kheops.proxy.marshaller.JSONAttributesListMarshaller;
 import online.kheops.proxy.tokens.AccessToken;
 import online.kheops.proxy.tokens.AccessTokenException;
 import online.kheops.proxy.tokens.AuthorizationToken;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.ws.rs.MediaTypes;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.*;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.client.*;
 import javax.ws.rs.core.*;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -32,7 +35,7 @@ import static javax.ws.rs.core.Response.Status.*;
 public final class WadoRsResource {
     private static final Logger LOG = Logger.getLogger(WadoRsResource.class.getName());
 
-    private static final Client CLIENT = ClientBuilder.newClient();
+    private static final Client CLIENT = ClientBuilder.newClient().register(JSONAttributesListMarshaller.class);
 
     @Context
     UriInfo uriInfo;
@@ -95,7 +98,79 @@ public final class WadoRsResource {
     public Response wadoSeriesThumbnail(@HeaderParam(AUTHORIZATION) String authorizationHeader,
                                  @PathParam("studyInstanceUID") String studyInstanceUID,
                                  @PathParam("seriesInstanceUID") String seriesInstanceUID) {
-        return webAccess(studyInstanceUID, seriesInstanceUID, AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
+
+        final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
+        final URI serviceURI = getParameterURI("online.kheops.pacs.uri");
+
+        final AccessToken accessToken;
+        try {
+            accessToken = AccessToken.createBuilder(authorizationURI)
+                    .withClientId(context.getInitParameter("online.kheops.client.dicomwebproxyclientid"))
+                    .withClientSecret(context.getInitParameter("online.kheops.client.dicomwebproxysecret"))
+                    .withCapability(AuthorizationToken.fromAuthorizationHeader(authorizationHeader).getToken())
+                    .withSeriesID(new SeriesID(studyInstanceUID, seriesInstanceUID))
+                    .build();
+        } catch (AccessTokenException e) {
+            LOG.log(WARNING, "Unable to get an access token", e);
+            throw new NotAuthorizedException("Bearer", "Basic");
+        } catch (Exception e) {
+            LOG.log(SEVERE, "unknown error while getting an access token", e);
+            throw new InternalServerErrorException("unknown error while getting an access token");
+        }
+
+
+        final WebTarget instancesTarget = CLIENT.target(serviceURI)
+                .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances")
+                .resolveTemplate("StudyInstanceUID", studyInstanceUID)
+                .resolveTemplate("SeriesInstanceUID", seriesInstanceUID);
+
+        final List<Attributes> instanceList;
+        try {
+            instanceList = instancesTarget.request(MediaTypes.APPLICATION_DICOM_JSON_TYPE)
+                    .header(AUTHORIZATION, accessToken.getHeaderValue())
+                    .get(new GenericType<List<Attributes>>() {});
+        } catch (ProcessingException e) {
+            LOG.log(SEVERE, "Unable to get instances", e);
+            throw new ServerErrorException("Unable to get instances", BAD_GATEWAY, e);
+        }
+
+        if (instanceList.isEmpty()) {
+            LOG.log(SEVERE, "No instances found");
+            throw new NotFoundException("No instances found");
+        }
+
+        instanceList.sort(Comparator.comparingInt((Attributes instance) -> instance.getInt(Tag.InstanceNumber, 0)));
+
+        final String sopInstanceUID = instanceList.get(instanceList.size() / 3).getString(Tag.SOPInstanceUID);
+
+
+        final WebTarget renderedTarget = CLIENT.target(serviceURI)
+                .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances/{SOPInstanceUID}")
+                .resolveTemplate("StudyInstanceUID", studyInstanceUID)
+                .resolveTemplate("SeriesInstanceUID", seriesInstanceUID)
+                .resolveTemplate("SOPInstanceUID", sopInstanceUID);
+
+
+        StreamingOutput streamingOutput = output -> {
+            try (final Response renderedResponse = renderedTarget.request("image/jpeg").header(AUTHORIZATION, accessToken.getHeaderValue()).get();
+                final InputStream inputStream = new BufferedInputStream(renderedResponse.readEntity(InputStream.class))) {
+                byte[] buffer = new byte[4096];
+                int len = inputStream.read(buffer);
+                while (len != -1) {
+                    output.write(buffer, 0, len);
+                    len = inputStream.read(buffer);
+                }
+                output.flush();
+            } catch (ResponseProcessingException e) {
+                LOG.log(SEVERE, "ResponseProcessingException status:" + e.getResponse().getStatus(), e);
+                throw new IOException(e);
+            } catch (ProcessingException e) {
+                LOG.log(SEVERE, "ProcessingException:", e);
+                throw new IOException(e);
+            }
+        };
+
+        return Response.ok(streamingOutput).type("image/jpeg").build();
     }
 
     @GET
