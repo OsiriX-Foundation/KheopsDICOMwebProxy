@@ -143,13 +143,11 @@ public final class WadoRsResource {
 
         final String sopInstanceUID = instanceList.get(instanceList.size() / 3).getString(Tag.SOPInstanceUID);
 
-
         final WebTarget renderedTarget = CLIENT.target(serviceURI)
-                .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances/{SOPInstanceUID}")
+                .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances/{SOPInstanceUID}/rendered")
                 .resolveTemplate("StudyInstanceUID", studyInstanceUID)
                 .resolveTemplate("SeriesInstanceUID", seriesInstanceUID)
                 .resolveTemplate("SOPInstanceUID", sopInstanceUID);
-
 
         StreamingOutput streamingOutput = output -> {
             try (final Response renderedResponse = renderedTarget.request("image/jpeg").header(AUTHORIZATION, accessToken.getHeaderValue()).get();
