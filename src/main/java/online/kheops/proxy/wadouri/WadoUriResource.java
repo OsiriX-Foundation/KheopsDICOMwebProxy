@@ -57,12 +57,8 @@ public class WadoUriResource {
     }
 
     private Response webAccess(AuthorizationToken authorizationToken) {
-
-        LOG.log(SEVERE, "in wado");
-
-
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
-        URI serviceURI = getParameterURI("online.kheops.pacs.uri");
+        final URI serviceURI = getParameterURI("online.kheops.pacs.uri");
 
         final MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
 
@@ -112,7 +108,6 @@ public class WadoUriResource {
         Invocation.Builder invocationBuilder = webTarget.request();
         invocationBuilder.header(AUTHORIZATION, accessToken.getHeaderValue());
 
-
         StreamingOutput streamingOutput = output -> {
             MultipartParser.Handler handler = (int partNumber, MultipartInputStream in) -> {
                 if (partNumber != 1) {
@@ -131,13 +126,9 @@ public class WadoUriResource {
             };
 
             try (final Response wadoRSResponse = webTarget.request().header(AUTHORIZATION, accessToken.getHeaderValue()).get()) {
-                final String contentTypeString = wadoRSResponse.getHeaderString(CONTENT_TYPE);
-                LOG.log(SEVERE, "contentTypeString:" + contentTypeString);
                 final String boundary = MediaType.valueOf(wadoRSResponse.getHeaderString(CONTENT_TYPE)).getParameters().get(BOUNDARY_PARAMETER);
                 try (final InputStream inputStream = new BufferedInputStream(wadoRSResponse.readEntity(InputStream.class))) {
-                    LOG.log(SEVERE, "boundry is:" + boundary);
-                    final MultipartParser multipartParser = new MultipartParser(boundary);
-                    multipartParser.parse(inputStream, handler);
+                    new MultipartParser(boundary).parse(inputStream, handler);
                 }
             } catch (ResponseProcessingException e) {
                 LOG.log(SEVERE, "ResponseProcessingException status:" + e.getResponse().getStatus(), e);
