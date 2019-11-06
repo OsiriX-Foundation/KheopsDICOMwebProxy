@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -71,13 +72,6 @@ public final class WadoRsResource {
                                  @PathParam("studyInstanceUID") String studyInstanceUID,
                                  @PathParam("seriesInstanceUID") String seriesInstanceUID,
                                  @Context HttpHeaders headers) {
-
-        for(String header: headers.getRequestHeaders().keySet()) {
-            for (String value: headers.getRequestHeader(header)) {
-                LOG.log(SEVERE, "header:" + header + ", value:" + value);
-            }
-        }
-
         return webAccess(studyInstanceUID, seriesInstanceUID, AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
     }
 
@@ -171,7 +165,16 @@ public final class WadoRsResource {
         Invocation.Builder invocationBuilder = webTarget.request();
         invocationBuilder.header(AUTHORIZATION, accessToken.getHeaderValue());
         if (acceptParam != null) {
-            invocationBuilder.header(ACCEPT, acceptParam);
+            final MediaType acceptMediaType = MediaType.valueOf(acceptParam);
+            final Map<String, String> parameters = acceptMediaType.getParameters();
+            final Map<String, String> forwardParameters = new HashMap<>();
+            for (final String acceptParam: parameters.keySet()) {
+                if (!(acceptParam.equals("transfer-syntax") && parameters.get(acceptParam).equals("*"))) {
+                    forwardParameters.put(acceptParam, parameters.get(acceptParam));
+                }
+            }
+
+            invocationBuilder.header(ACCEPT, new MediaType(acceptMediaType.getType(), acceptMediaType.getSubtype(), forwardParameters));
         }
         if (acceptCharsetParam != null) {
             invocationBuilder.header(ACCEPT_CHARSET, acceptCharsetParam);
