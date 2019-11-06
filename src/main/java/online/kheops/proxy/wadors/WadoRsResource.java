@@ -69,7 +69,15 @@ public final class WadoRsResource {
     @Path("/password/dicomweb/studies/{studyInstanceUID:([0-9]+[.])*[0-9]+}/series/{seriesInstanceUID:([0-9]+[.])*[0-9]+}/instances/{sopInstanceUID:([0-9]+[.])*[0-9]+}")
     public Response wadoInstance(@HeaderParam(AUTHORIZATION) String authorizationHeader,
                                  @PathParam("studyInstanceUID") String studyInstanceUID,
-                                 @PathParam("seriesInstanceUID") String seriesInstanceUID) {
+                                 @PathParam("seriesInstanceUID") String seriesInstanceUID,
+                                 @Context HttpHeaders headers) {
+
+        for(String header: headers.getRequestHeaders().keySet()) {
+            for (String value: headers.getRequestHeader(header)) {
+                LOG.log(SEVERE, "header:" + header + ", value:" + value);
+            }
+        }
+
         return webAccess(studyInstanceUID, seriesInstanceUID, AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
     }
 
