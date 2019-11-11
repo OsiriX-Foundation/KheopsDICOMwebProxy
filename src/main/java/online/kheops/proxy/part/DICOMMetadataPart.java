@@ -51,6 +51,8 @@ class DICOMMetadataPart extends Part {
             attributes.setString(Tag.SpecificCharacterSet, VR.CS, "ISO_IR 192");
             if (attributes.getString(Tag.Modality, "").equals("XC")) {
                 attributes.setString(Tag.TransferSyntaxUID, VR.UI, "1.2.840.10008.1.2.4.50");
+            } else {
+                attributes.setString(Tag.TransferSyntaxUID, VR.UI, "1.2.840.10008.1.2.1");
             }
         }
 
