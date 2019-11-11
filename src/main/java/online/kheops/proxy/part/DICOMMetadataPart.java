@@ -4,6 +4,8 @@ import online.kheops.proxy.id.ContentLocation;
 import online.kheops.proxy.id.InstanceID;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.BulkData;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.data.VR;
 import org.dcm4che3.io.SAXReader;
 import org.dcm4che3.ws.rs.MediaTypes;
 import org.xml.sax.SAXException;
@@ -43,6 +45,13 @@ class DICOMMetadataPart extends Part {
             datasets = readJSONAttributes(inputStream);
         } else {
             throw new IllegalArgumentException("Invalid Media Type");
+        }
+
+        for (final Attributes attributes: datasets) {
+            attributes.setString(Tag.SpecificCharacterSet, VR.CS, "ISO_IR 192");
+            if (attributes.getString(Tag.Modality, "").equals("XC")) {
+                attributes.setString(Tag.TransferSyntaxUID, VR.UI, "1.2.840.10008.1.2.4.50");
+            }
         }
 
         try {
