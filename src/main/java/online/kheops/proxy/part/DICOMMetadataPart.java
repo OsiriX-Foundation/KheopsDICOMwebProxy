@@ -22,9 +22,13 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 class DICOMMetadataPart extends Part {
+    private static final Logger LOG = Logger.getLogger(DICOMMetadataPart.class.getName());
+
     private static final Annotation[] EMPTY_ANNOTATIONS = new Annotation[0];
 
     private final Set<Attributes> datasets;
@@ -48,8 +52,10 @@ class DICOMMetadataPart extends Part {
         }
 
         for (final Attributes attributes: datasets) {
+            LOG.log(Level.SEVERE, "Adding specific characterset");
             attributes.setString(Tag.SpecificCharacterSet, VR.CS, "ISO_IR 192");
             if (attributes.getString(Tag.Modality, "").equals("XC")) {
+                LOG.log(Level.SEVERE, "Adding jpeg syntax");
                 attributes.setString(Tag.TransferSyntaxUID, VR.UI, "1.2.840.10008.1.2.4.50");
             } else {
                 attributes.setString(Tag.TransferSyntaxUID, VR.UI, "1.2.840.10008.1.2.1");

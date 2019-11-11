@@ -96,6 +96,9 @@ public abstract class Part implements AutoCloseable {
         if (mediaType.equals(MediaType.valueOf("application/pdf"))) {
             return MediaType.valueOf("application/octet-stream");
         }
+        if (mediaType.isCompatible(MediaType.valueOf("image/jpeg"))) {
+            return MediaType.valueOf("image/jpeg; transfer-syntax=1.2.840.10008.1.2.4.50");
+        }
         return mediaType;
     }
 
