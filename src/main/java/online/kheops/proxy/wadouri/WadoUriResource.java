@@ -75,8 +75,9 @@ public class WadoUriResource {
 
         final List<String> sopInstanceUIDs = queryParameters.get("objectUID");
         if (sopInstanceUIDs == null || sopInstanceUIDs.size() != 1) {
-            LOG.log(WARNING, "Missing objectUID");
-            throw new BadRequestException("Missing objectUID");
+            return CLIENT.target("http://localhost/capabilities/password/dicomweb/studies/" + studyInstanceUIDs.get(0) + "/series/" + seriesInstanceUIDs.get(0) + "/thumbnail").request().get();
+//            LOG.log(WARNING, "Missing objectUID");
+//            throw new BadRequestException("Missing objectUID");
         }
 
         final String studyInstanceUID = studyInstanceUIDs.get(0);
