@@ -75,9 +75,15 @@ public class WadoUriResource {
 
         final List<String> sopInstanceUIDs = queryParameters.get("objectUID");
         if (sopInstanceUIDs == null || sopInstanceUIDs.size() != 1) {
-            return CLIENT.target("http://localhost/capabilities/password/dicomweb/studies/" + studyInstanceUIDs.get(0) + "/series/" + seriesInstanceUIDs.get(0) + "/thumbnail").request().get();
-//            LOG.log(WARNING, "Missing objectUID");
-//            throw new BadRequestException("Missing objectUID");
+
+            try {
+                byte[] bytes = CLIENT.target("http://localhost/capabilities/password/dicomweb/studies/" + studyInstanceUIDs.get(0) + "/series/" + seriesInstanceUIDs.get(0) + "/thumbnail").request().get(byte[].class);
+                return Response.ok(bytes).type("image.jpeg").build();
+            } catch (ProcessingException | WebApplicationException e) {
+                LOG.log(SEVERE, "wado hack error", e);
+                LOG.log(WARNING, "Missing objectUID");
+                throw new BadRequestException("Missing objectUID");
+            }
         }
 
         final String studyInstanceUID = studyInstanceUIDs.get(0);
