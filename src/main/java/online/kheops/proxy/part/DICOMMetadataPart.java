@@ -175,7 +175,12 @@ class DICOMMetadataPart extends Part {
                     new MultivaluedHashMap<>(),
                     byteArrayOutputStream);
 
-            return byteArrayOutputStream.toByteArray();
+            byte[] byteArray = byteArrayOutputStream.toByteArray();
+
+            LOG.log(Level.SEVERE, "json:");
+            LOG.log(Level.SEVERE, new String(byteArray));
+
+            return byteArray;
         }
     }
 
