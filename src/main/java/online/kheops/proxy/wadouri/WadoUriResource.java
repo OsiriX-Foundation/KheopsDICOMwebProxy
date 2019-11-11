@@ -77,7 +77,7 @@ public class WadoUriResource {
         if (sopInstanceUIDs == null || sopInstanceUIDs.size() != 1) {
 
             try {
-                byte[] bytes = CLIENT.target("http://localhost/capabilities/password/dicomweb/studies/" + studyInstanceUIDs.get(0) + "/series/" + seriesInstanceUIDs.get(0) + "/thumbnail").request().get(byte[].class);
+                byte[] bytes = CLIENT.target("http://localhost:8080/capabilities/password/dicomweb/studies/" + studyInstanceUIDs.get(0) + "/series/" + seriesInstanceUIDs.get(0) + "/thumbnail").request().get(byte[].class);
                 return Response.ok(bytes).type("image.jpeg").build();
             } catch (ProcessingException | WebApplicationException e) {
                 LOG.log(SEVERE, "wado hack error", e);
