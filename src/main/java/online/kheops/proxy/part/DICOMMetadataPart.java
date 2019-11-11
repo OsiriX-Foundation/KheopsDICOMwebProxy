@@ -85,10 +85,9 @@ class DICOMMetadataPart extends Part {
 
     @Override
     public InputStream newInputStreamForInstance(Set<InstanceID> instanceIDs) throws IOException {
-//        if (instanceIDs.equals(getInstanceIDs())) {
-//            return super.newInputStreamForInstance(instanceIDs);
-//        } else
-        if (MediaTypes.equalsIgnoreParameters(getMediaType(), MediaTypes.APPLICATION_DICOM_JSON_TYPE)) {
+        if (instanceIDs.equals(getInstanceIDs()) && !MediaTypes.equalsIgnoreParameters(getMediaType(), MediaTypes.APPLICATION_DICOM_JSON_TYPE)) {
+            return super.newInputStreamForInstance(instanceIDs);
+        } else if (MediaTypes.equalsIgnoreParameters(getMediaType(), MediaTypes.APPLICATION_DICOM_JSON_TYPE)) {
             return new ByteArrayInputStream(getBytesForInstances(instanceIDs));
         } else {
             throw new IllegalArgumentException("Requesting an inexact set of instances for a mediatype other than JSON");
