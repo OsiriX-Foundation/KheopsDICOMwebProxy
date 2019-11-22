@@ -17,10 +17,6 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-before_install:
-  - ./gradlew wrapper --gradle-version=6.0.1 --distribution-type=bin
-  - ./gradlew --version
-
 after_success:
   - export BRANCH=$TRAVIS_BRANCH
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
