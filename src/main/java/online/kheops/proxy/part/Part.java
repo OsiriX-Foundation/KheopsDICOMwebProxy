@@ -13,7 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.logging.Level.WARNING;
 import static javax.ws.rs.core.HttpHeaders.*;
@@ -21,7 +22,7 @@ import static org.dcm4che3.ws.rs.MediaTypes.*;
 
 
 public abstract class Part implements AutoCloseable {
-    private static final Logger LOG = Logger.getLogger(Part.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(Part.class);
 
     private final Providers providers;
 
@@ -47,7 +48,7 @@ public abstract class Part implements AutoCloseable {
             try {
                 fileID.accept(getContentDispositionName(getHeaderParamValue(headerParams, CONTENT_DISPOSITION)));
             } catch (IllegalArgumentException e) {
-                LOG.log(WARNING, "Unable to parse content-disposition: " + getHeaderParamValue(headerParams, CONTENT_DISPOSITION), e);
+                LOG.warn("Unable to parse content-disposition: {}", getHeaderParamValue(headerParams, CONTENT_DISPOSITION), e);
             }
             mediaType = APPLICATION_DICOM_TYPE;
         } else {

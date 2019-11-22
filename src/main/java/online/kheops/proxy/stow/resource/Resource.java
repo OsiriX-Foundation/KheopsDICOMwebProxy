@@ -36,7 +36,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static javax.ws.rs.core.HttpHeaders.ACCEPT;
@@ -52,7 +53,7 @@ import static org.glassfish.jersey.client.RequestEntityProcessing.CHUNKED;
 
 @Path("/")
 public final class Resource {
-    private static final Logger LOG = Logger.getLogger(Resource.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(Resource.class);
     private static final Client CLIENT = newClient();
 
     private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
@@ -125,15 +126,15 @@ public final class Resource {
         try {
             introspectResponse = Introspect.endpoint(context, introspectionURI, headerXForwardedFor).token(authorizationToken.getToken());
             if (!introspectResponse.isActive()) {
-                LOG.log(Level.WARNING, "Authorization token is not valid for writing");
+                LOG.warn("Authorization token is not valid for writing");
                 throw new NotAuthorizedException("Bearer", "Basic");
             }
             if (!introspectResponse.isValidForScope("write")) {
-                LOG.log(Level.WARNING, "Authorization token is not valid for writing");
+                LOG.warn("Authorization token is not valid for writing");
                 throw new WebApplicationException(Response.status(FORBIDDEN).entity("Authorization is not valid for posting").build());
             }
         } catch (AccessTokenException e) {
-            LOG.log(Level.SEVERE, "Unable to introspect the token", e);
+            LOG.error("Unable to introspect the token", e);
             throw new WebApplicationException(Response.status(BAD_GATEWAY).build());
         }
 
@@ -144,7 +145,7 @@ public final class Resource {
             final Proxy proxy = new Proxy(providers, getConvertedContentType(), inputStream, authorizationManager, fetchRequester::addStudies);
             return processProxy(proxy, authorizationManager, studyInstanceUID, introspectResponse);
         } catch (IOException e) {
-            LOG.log(Level.WARNING, "", e);
+            LOG.warn("", e);
             throw new WebApplicationException(BAD_REQUEST);
         } finally {
             fetchRequester.fetch();
@@ -198,15 +199,15 @@ public final class Resource {
             try {
                 proxy.processStream(output);
             } catch (GatewayException e) {
-                LOG.log(Level.SEVERE, "Gateway Error", e);
+                LOG.error("Gateway Error", e);
                 throw new WebApplicationException(BAD_GATEWAY);
             } catch (RequestException e) {
-                LOG.log(Level.WARNING, "Bad request Error", e);
+                LOG.warn("Bad request Error", e);
                 throw new WebApplicationException(BAD_REQUEST);
             } catch (WebApplicationException e) {
                 throw e;
             } catch (Exception e) {
-                LOG.log(Level.SEVERE, "Error in the proxy", e);
+                LOG.error("Error in the proxy", e);
                 throw new WebApplicationException(INTERNAL_SERVER_ERROR);
             }
         };
@@ -218,12 +219,12 @@ public final class Resource {
                     .post(Entity.entity(multipartStreamingOutput, getGatewayContentType()));
              final InputStream responseStream = gatewayResponse.readEntity(InputStream.class)) {
             if (gatewayResponse.getStatusInfo().getFamily() != SUCCESSFUL && gatewayResponse.getStatus() != CONFLICT.getStatusCode()) {
-                LOG.log(Level.SEVERE, () -> "Gateway response was unsuccessful, Status: " + gatewayResponse.getStatus());
+                LOG.error("Gateway response was unsuccessful, Status: {}", gatewayResponse.getStatus());
                 try {
                     String responseString = gatewayResponse.readEntity(String.class);
-                    LOG.log(Level.SEVERE, () -> "Response Content: " + responseString);
+                    LOG.error("Response Content: {}", responseString);
                 } catch (ProcessingException pe) {
-                    LOG.log(Level.SEVERE, "Unable to get a response content", pe);
+                    LOG.error("Unable to get a response content", pe);
                 }
 
                 throw new WebApplicationException(BAD_GATEWAY);
@@ -231,7 +232,7 @@ public final class Resource {
 
             return authorizationManager.getResponse(SAXReader.parse(responseStream), gatewayResponse.getStatus());
         } catch (ProcessingException e) {
-            LOG.log(Level.SEVERE, "Gateway Processing Error", e);
+            LOG.error("Gateway Processing Error", e);
             if (e.getCause() instanceof WebApplicationException) {
                 WebApplicationException cause = (WebApplicationException)e.getCause();
                 throw new WebApplicationException(cause.getResponse().getStatus());
@@ -239,10 +240,10 @@ public final class Resource {
                 throw new InternalServerErrorException(e);
             }
         } catch (ParserConfigurationException | SAXException | IOException e) {
-            LOG.log(Level.WARNING, "Error parsing response", e);
+            LOG.warn("Error parsing response", e);
             throw new WebApplicationException(BAD_GATEWAY);
         } catch (Exception e) {
-            LOG.log(Level.SEVERE, "error", e);
+            LOG.error("error", e);
             throw new WebApplicationException(BAD_GATEWAY);
         }
     }
@@ -251,7 +252,7 @@ public final class Resource {
         try {
             return new URI(context.getInitParameter(parameter));
         } catch (URISyntaxException e) {
-            LOG.log(Level.SEVERE, "Error with the STOWServiceURI", e);
+            LOG.error("Error with the STOWServiceURI", e);
             throw new WebApplicationException(INTERNAL_SERVER_ERROR);
         }
     }

@@ -13,14 +13,15 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.logging.Level.SEVERE;
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
 import static javax.ws.rs.core.Response.Status.Family.SUCCESSFUL;
 
 public class FetchRequester {
-    private static final Logger LOG = Logger.getLogger(FetchRequester.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(FetchRequester.class);
     private static final Client CLIENT = ClientBuilder.newClient();
 
     private final UriBuilder fetchUriBuilder;
@@ -54,12 +55,10 @@ public class FetchRequester {
                     .post(Entity.text(""))) {
             if (response.getStatusInfo().getFamily() != SUCCESSFUL) {
                 final String responseString = response.readEntity(String.class);
-                LOG.log(SEVERE, () -> "Error while triggering fetch for studyInstanceUID:" + studyInstanceUID +
-                        " status code:" + response.getStatus() +
-                        " response:" + responseString);
+                LOG.error("Error while triggering fetch for studyInstanceUID:{} status code:{} response:{}" +studyInstanceUID, response.getStatus(), responseString);
             }
         } catch (ProcessingException | WebApplicationException e) {
-            LOG.log(SEVERE, "Error while triggering fetch for studyInstanceUID:" + studyInstanceUID, e);
+            LOG.error("Error while triggering fetch for studyInstanceUID:{}", studyInstanceUID, e);
         }
     }
 }

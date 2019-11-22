@@ -23,7 +23,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.*;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.logging.Level.WARNING;
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
@@ -35,7 +36,7 @@ import static online.kheops.proxy.stow.authorization.AuthorizationManagerExcepti
 import static online.kheops.proxy.stow.authorization.AuthorizationManagerException.Reason.UNKNOWN_CONTENT_LOCATION;
 
 public final class AuthorizationManager {
-    private static final Logger LOG = Logger.getLogger(AuthorizationManager.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(AuthorizationManager.class);
     private static final Client CLIENT = ClientBuilder.newClient();
 
     private static final String HEADER_X_LINK_AUTHORIZATION = "X-Link-Authorization";
@@ -188,9 +189,7 @@ public final class AuthorizationManager {
                 return true;
             } else {
                 String responseValue = response.readEntity(String.class);
-                LOG.log(WARNING, () -> "Authorization server rejected authorization for series:" + seriesID +
-                        " status:" + response.getStatus() + 
-                        " response:" + responseValue);
+                LOG.warn("Authorization server rejected authorization for series:{} status:{} response:{}", seriesID, response.getStatus(), responseValue);
                 forbiddenSeriesIDs.add(seriesID);
                 forbiddenInstanceIDs.add(instanceID);
                 return false;
@@ -200,7 +199,7 @@ public final class AuthorizationManager {
             forbiddenInstanceIDs.add(instanceID);
             throw new GatewayException("Error while getting the access token", e);
         }  catch (WebApplicationException e) {
-            LOG.log(WARNING, "Unable to get access to to a series using " + e.getResponse().getLocation(), e);
+            LOG.warn("Unable to get access to to a series using {}", e.getResponse().getLocation(), e);
             forbiddenSeriesIDs.add(seriesID);
             forbiddenInstanceIDs.add(instanceID);
             return false;

@@ -20,7 +20,8 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -31,7 +32,7 @@ import static javax.ws.rs.core.Response.Status.*;
 
 @Path("/")
 public final class WadoRSStudyInstance {
-    private static final Logger LOG = Logger.getLogger(WadoRSStudyInstance.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(WadoRSStudyInstance.class);
     private static final Client CLIENT = ClientBuilder.newClient().register(JSONAttributesListMarshaller.class);
 
     private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
@@ -89,17 +90,17 @@ public final class WadoRSStudyInstance {
                     .get(new GenericType<List<Attributes>>() {});
 
         } catch (ProcessingException e) {
-            LOG.log(SEVERE, "Error getting the series list", e);
+            LOG.error("Error getting the series list", e);
             throw new WebApplicationException(BAD_GATEWAY);
         } catch (WebApplicationException e) {
             if (e.getResponse().getStatus() == UNAUTHORIZED.getStatusCode()) {
-                LOG.log(WARNING, "User Unauthorized", e);
+                LOG.warn("User Unauthorized", e);
                 throw new WebApplicationException(UNAUTHORIZED);
             } else if (e.getResponse().getStatus() == NOT_FOUND.getStatusCode()) {
-                LOG.log(WARNING, "Study Not Found", e);
+                LOG.warn("Study Not Found", e);
                 throw new WebApplicationException(NOT_FOUND);
             } else {
-                LOG.log(WARNING, "Unexpected response", e);
+                LOG.warn("Unexpected response", e);
                 throw new WebApplicationException(BAD_GATEWAY);
             }
         }
@@ -134,7 +135,7 @@ public final class WadoRSStudyInstance {
             try {
                 accessToken = accessTokenBuilder.withSeriesID(new SeriesID(studyInstanceUID, seriesInstanceUID)).xForwardedFor(headerXForwardedFor).build();
             } catch (AccessTokenException e) {
-                LOG.log(SEVERE, "Unable to get an access token", e);
+                LOG.error("Unable to get an access token", e);
                 throw new NotAuthorizedException("Bearer", "Basic");
             }
 
@@ -144,7 +145,7 @@ public final class WadoRSStudyInstance {
                         .header(AUTHORIZATION, accessToken.getHeaderValue())
                         .get(new GenericType<List<Attributes>>() {});
             } catch (ProcessingException | WebApplicationException e) {
-                LOG.log(SEVERE, "Unable to get instances for a series", e);
+                LOG.error("Unable to get instances for a series", e);
                 throw new WebApplicationException(BAD_GATEWAY);
             }
 
@@ -182,7 +183,7 @@ public final class WadoRSStudyInstance {
         try {
             return new URI(context.getInitParameter(parameter));
         } catch (URISyntaxException e) {
-            LOG.log(SEVERE, "Error with the STOWServiceURI", e);
+            LOG.error("Error with the STOWServiceURI", e);
             throw new WebApplicationException(INTERNAL_SERVER_ERROR);
         }
     }

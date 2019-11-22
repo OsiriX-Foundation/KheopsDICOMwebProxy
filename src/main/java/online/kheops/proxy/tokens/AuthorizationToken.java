@@ -5,10 +5,11 @@ import javax.ws.rs.core.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AuthorizationToken {
-    private static final Logger LOG = Logger.getLogger(AuthorizationToken.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(AuthorizationToken.class);
 
     private final String token;
 
@@ -30,7 +31,7 @@ public class AuthorizationToken {
                 final String decoded = new String(Base64.getDecoder().decode(encodedAuthorization), StandardCharsets.UTF_8);
                 String[] split = decoded.split(":");
                 if (split.length != 2) {
-                    LOG.log(Level.WARNING, "Basic authentication doesn't have a username and password");
+                    LOG.warn("Basic authentication doesn't have a username and password");
                     throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).build());
                 }
 
@@ -38,16 +39,16 @@ public class AuthorizationToken {
             } else if (authorizationHeader.toUpperCase().startsWith("BEARER ")) {
                 token = authorizationHeader.substring(7);
             } else {
-                LOG.log(Level.WARNING, "Unknown authorization header");
+                LOG.warn("Unknown authorization header");
                 throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).build());
             }
 
             if (token.length() == 0) {
-                LOG.log(Level.WARNING, "Empty authorization token");
+                LOG.warn("Empty authorization token");
                 throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).build());
             }
         } else {
-            LOG.log(Level.WARNING, "Missing authorization header");
+            LOG.warn("Missing authorization header");
             throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).build());
         }
 

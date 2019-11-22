@@ -15,7 +15,8 @@ import javax.ws.rs.core.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
@@ -27,7 +28,7 @@ import static org.dcm4che3.ws.rs.MediaTypes.APPLICATION_DICOM_JSON;
 
 @Path("/")
 public class OHIFMetadataResource {
-    private static final Logger LOG = Logger.getLogger(OHIFMetadataResource.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(OHIFMetadataResource.class);
 
     private static final String LINK_AUTHORIZATION = "X-Link-Authorization";
     private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
@@ -106,20 +107,20 @@ public class OHIFMetadataResource {
                 status = ((WebApplicationException) e).getResponse().getStatus();
             }
             if (status == UNAUTHORIZED.getStatusCode()) {
-                LOG.log(WARNING, "Unauthorized", e);
+                LOG.warn("Unauthorized", e);
                 throw new WebApplicationException(UNAUTHORIZED);
             } else if (status == NOT_FOUND.getStatusCode()) {
-                LOG.log(WARNING, "Metadata not found", e);
+                LOG.warn("Metadata not found", e);
                 throw new WebApplicationException(NOT_FOUND);
             } else if (status == BAD_REQUEST.getStatusCode()) {
-                LOG.log(WARNING, "Bad Request", e);
+                LOG.warn("Bad Request", e);
                 throw new WebApplicationException(BAD_REQUEST);
             } else {
-                LOG.log(SEVERE, "Bad Gateway", e);
+                LOG.error("Bad Gateway", e);
                 throw new WebApplicationException(BAD_GATEWAY);
             }
         } catch (ProcessingException e) {
-            LOG.log(SEVERE, "Processing Error", e);
+            LOG.error("Processing Error", e);
             throw new WebApplicationException(BAD_GATEWAY);
         }
     }
@@ -128,7 +129,7 @@ public class OHIFMetadataResource {
         try {
             return new URI(context.getInitParameter(parameter));
         } catch (URISyntaxException e) {
-            LOG.log(SEVERE, "Error with the STOWServiceURI", e);
+            LOG.error("Error with the STOWServiceURI", e);
             throw new WebApplicationException(INTERNAL_SERVER_ERROR);
         }
     }

@@ -15,7 +15,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.stream.Collectors;
 
 import static java.util.logging.Level.WARNING;
@@ -23,7 +24,7 @@ import static javax.ws.rs.core.HttpHeaders.CONTENT_LOCATION;
 import static org.glassfish.jersey.media.multipart.Boundary.BOUNDARY_PARAMETER;
 
 public final class Proxy {
-    private static final Logger LOG = Logger.getLogger(Proxy.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(Proxy.class);
 
     private final Providers providers;
 
@@ -77,9 +78,9 @@ public final class Proxy {
             throw e;
         } catch (IOException e) {
             authorizationManager.addProcessingFailure(fileID.isEmpty() ? null : fileID.get(0));
-            LOG.log(WARNING, "IOException while parsing part:\n" + partNumber, e);
+            LOG.warn("IOException while parsing part:\n{}", partNumber, e);
         } catch (AuthorizationManagerException e) {
-            LOG.log(WARNING, "Unable to get authorization for part:" + partNumber + ", " + partString, e);
+            LOG.warn("Unable to get authorization for part:{}, {}", partNumber, partString, e);
         }
     }
 

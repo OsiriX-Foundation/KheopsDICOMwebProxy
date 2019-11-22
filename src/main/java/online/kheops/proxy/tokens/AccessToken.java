@@ -13,7 +13,8 @@ import javax.ws.rs.core.UriBuilder;
 import javax.xml.bind.annotation.XmlElement;
 import java.net.URI;
 import java.util.Objects;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.glassfish.jersey.client.authentication.HttpAuthenticationFeature.HTTP_AUTHENTICATION_PASSWORD;
@@ -21,7 +22,7 @@ import static org.glassfish.jersey.client.authentication.HttpAuthenticationFeatu
 
 @SuppressWarnings("WeakerAccess")
 public class AccessToken {
-    private static final Logger LOG = Logger.getLogger(AccessToken.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(AccessToken.class);
     private static final Client CLIENT = ClientBuilder.newClient().register(HttpAuthenticationFeature.basicBuilder().build());
 
     private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";

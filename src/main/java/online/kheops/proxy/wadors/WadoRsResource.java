@@ -19,7 +19,8 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,7 +32,7 @@ import static javax.ws.rs.core.Response.Status.*;
 
 @Path("/")
 public final class WadoRsResource {
-    private static final Logger LOG = Logger.getLogger(WadoRsResource.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(WadoRsResource.class);
 
     private static final Client CLIENT = ClientBuilder.newClient();
 
@@ -137,10 +138,10 @@ public final class WadoRsResource {
                     .xForwardedFor(headerXForwardedFor)
                     .build();
         } catch (AccessTokenException e) {
-            LOG.log(WARNING, "Unable to get an access token", e);
+            LOG.warn("Unable to get an access token", e);
             throw new NotAuthorizedException("Bearer", "Basic");
         } catch (Exception e) {
-            LOG.log(SEVERE, "unknown error while getting an access token", e);
+            LOG.error("unknown error while getting an access token", e);
             throw new InternalServerErrorException("unknown error while getting an access token");
         }
 
@@ -170,12 +171,12 @@ public final class WadoRsResource {
         final Response upstreamResponse;
         try {
             upstreamResponse = invocationBuilder.get();
-            LOG.log(SEVERE, "closeCounter:" + closeCounter.getAndIncrement());
+            LOG.error("closeCounter: {}", closeCounter.getAndIncrement());
         } catch (ProcessingException e) {
-            LOG.log(SEVERE, "error processing response from upstream", e);
+            LOG.error("error processing response from upstream", e);
             throw new WebApplicationException(BAD_GATEWAY);
         } catch (Exception e) {
-            LOG.log(SEVERE, "unknown error while getting from upstream", e);
+            LOG.error("unknown error while getting from upstream", e);
             throw new InternalServerErrorException("unknown error while getting from upstream");
         }
 
@@ -208,7 +209,7 @@ public final class WadoRsResource {
         try {
             return new URI(context.getInitParameter(parameter));
         } catch (URISyntaxException e) {
-            LOG.log(SEVERE, "Error with the STOWServiceURI", e);
+            LOG.error("Error with the STOWServiceURI", e);
             throw new WebApplicationException(INTERNAL_SERVER_ERROR);
         }
     }

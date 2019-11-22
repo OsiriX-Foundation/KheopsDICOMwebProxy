@@ -29,7 +29,8 @@ import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
@@ -40,7 +41,7 @@ import static org.glassfish.jersey.media.multipart.Boundary.BOUNDARY_PARAMETER;
 
 @Path("/")
 public final class WadoRSStudy {
-    private static final Logger LOG = Logger.getLogger(WadoRSStudy.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(WadoRSStudy.class);
     private static final Client CLIENT = newClient();
 
     private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
@@ -100,7 +101,7 @@ public final class WadoRSStudy {
             // TODO this is not quite right, because the accept header might have multiple types
             acceptMediaType = MediaType.valueOf(acceptParam);
         } catch (IllegalArgumentException e) {
-            LOG.log(WARNING, "Error while getting the accept media type", e);
+            LOG.warn("Error while getting the accept media type", e);
             throw new WebApplicationException(NOT_ACCEPTABLE);
 
         }
@@ -119,20 +120,20 @@ public final class WadoRSStudy {
                     .header(HEADER_X_FORWARDED_FOR, headerXForwardedFor)
                     .get()) {
             if (listResponse.getStatus() == UNAUTHORIZED.getStatusCode() || listResponse.getStatus() == FORBIDDEN.getStatusCode()) {
-                LOG.log(WARNING, () -> "Authentication error while getting the series list, status: " + listResponse.getStatus());
+                LOG.warn("Authentication error while getting the series list, status: {}", listResponse.getStatus());
                 if (listResponse.getStatus() == UNAUTHORIZED.getStatusCode()) {
                     throw new NotAuthorizedException("Bearer", "Basic");
                 } else {
                     throw new WebApplicationException(listResponse.getStatus());
                 }
             } else if (listResponse.getStatusInfo().getFamily() != SUCCESSFUL) {
-                LOG.log(SEVERE, () -> "Unable to successfully get the series list, status: " + listResponse.getStatus());
+                LOG.error("Unable to successfully get the series list, status: {}", listResponse.getStatus());
                 throw new WebApplicationException(BAD_GATEWAY);
             }
 
             seriesList = listResponse.readEntity(new GenericType<List<Attributes>>() {});
         } catch (ProcessingException e) {
-            LOG.log(SEVERE, "Error while accessing the studies list", e);
+            LOG.error("Error while accessing the studies list", e);
             throw new WebApplicationException(BAD_GATEWAY);
         }
 
@@ -147,7 +148,7 @@ public final class WadoRSStudy {
                 try {
                     accessToken = accessTokenBuilder.withSeriesID(new SeriesID(studyInstanceUID, seriesInstanceUID)).xForwardedFor(headerXForwardedFor).build();
                 } catch (AccessTokenException e) {
-                    LOG.log(WARNING, "Unable to get an access token", e);
+                    LOG.warn("Unable to get an access token", e);
                     throw new WebApplicationException(UNAUTHORIZED);
                 }
 
@@ -178,7 +179,7 @@ public final class WadoRSStudy {
 
                     new MultipartParser(boundary).parse(inputStream, handler);
                 } catch (IOException | ProcessingException | WebApplicationException e) {
-                    LOG.log(SEVERE, "Error while streaming the output", e);
+                    LOG.error("Error while streaming the output", e);
                     throw new WebApplicationException(BAD_GATEWAY);
                 }
             }
@@ -194,7 +195,7 @@ public final class WadoRSStudy {
         try {
             return new URI(context.getInitParameter(parameter));
         } catch (URISyntaxException e) {
-            LOG.log(SEVERE, "Error with the STOWServiceURI", e);
+            LOG.error("Error with the STOWServiceURI", e);
             throw new WebApplicationException(INTERNAL_SERVER_ERROR);
         }
     }

@@ -17,7 +17,8 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
@@ -26,7 +27,7 @@ import static javax.ws.rs.core.Response.Status.*;
 
 @Path("/")
 public class WadoUriResource {
-    private static final Logger LOG = Logger.getLogger(WadoUriResource.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(WadoUriResource.class);
 
     private static final Client CLIENT = ClientBuilder.newClient();
 
@@ -91,10 +92,10 @@ public class WadoUriResource {
                     .xForwardedFor(headerXForwardedFor)
                     .build();
         } catch (AccessTokenException e) {
-            LOG.log(WARNING, "Unable to get an access token", e);
+            LOG.warn("Unable to get an access token", e);
             throw new NotAuthorizedException("Bearer", "Basic");
         } catch (Exception e) {
-            LOG.log(SEVERE, "unknown error while getting an access token", e);
+            LOG.error("unknown error while getting an access token", e);
             throw new InternalServerErrorException("unknown error while getting an access token");
         }
 
@@ -117,17 +118,17 @@ public class WadoUriResource {
         final Response upstreamResponse;
         try {
             upstreamResponse = invocationBuilder.get();
-            LOG.log(SEVERE, "closeCounter:" + closeCounter.getAndIncrement());
+            LOG.error("closeCounter: {}", closeCounter.getAndIncrement());
         } catch (ProcessingException e) {
-            LOG.log(SEVERE, "error processing response from upstream", e);
+            LOG.error("error processing response from upstream", e);
             throw new WebApplicationException(BAD_GATEWAY);
         } catch (Exception e) {
-            LOG.log(SEVERE, "unknown error while getting from upstream", e);
+            LOG.error("unknown error while getting from upstream", e);
             throw new InternalServerErrorException("unknown error while getting from upstream");
         }
 
         if (upstreamResponse.getStatusInfo().getFamily() == Family.SERVER_ERROR) {
-            LOG.log(WARNING, "Sever error from upstream: status" + upstreamResponse.getStatus());
+            LOG.warn("Sever error from upstream: status {}", upstreamResponse.getStatus());
             throw new WebApplicationException(BAD_GATEWAY);
         }
 
@@ -160,7 +161,7 @@ public class WadoUriResource {
         try {
             return new URI(context.getInitParameter(parameter));
         } catch (URISyntaxException e) {
-            LOG.log(SEVERE, "Error with the STOWServiceURI", e);
+            LOG.error("Error with the STOWServiceURI", e);
             throw new WebApplicationException(INTERNAL_SERVER_ERROR);
         }
     }
