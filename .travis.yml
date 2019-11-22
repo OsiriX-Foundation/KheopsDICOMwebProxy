@@ -24,6 +24,7 @@ after_success:
   #  - ./gradlew sonarqube -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_LOGIN
   - ./gradlew --version
   - ./gradle --version
+  - gradle --version
   - ./gradle
 
 #addons:
