@@ -1,0 +1,30 @@
+<!-- this file goes in src/main/resources/logback.xml -->
+<configuration>
+    <!-- if the system property LOCAL is defined, we'll use a human-friendly log format -->
+    <if condition='isDefined("LOCAL")'>
+        <then>
+            <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>%d [%thread] %-5level %logger{36} - %msg%n</pattern>
+                </encoder>
+            </appender>
+        </then>
+        <else>
+            <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+                    <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
+                        <appendLineSeparator>true</appendLineSeparator>
+                        <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter" />
+                    </layout>
+                </encoder>
+            </appender>
+        </else>
+    </if>
+
+    <!-- overriding the default log level per class / package -->
+    <!-- <logger name="com.example" level="INFO" /> -->
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
