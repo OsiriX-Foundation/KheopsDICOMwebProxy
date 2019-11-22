@@ -17,15 +17,15 @@ notifications:
 #    - $HOME/.gradle/caches/
 #    - $HOME/.gradle/wrapper/
 
-script:
-  - export BRANCH=$TRAVIS_BRANCH
-  - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
-  - git fetch --unshallow
+#after_success:
+#  - export BRANCH=$TRAVIS_BRANCH
+#  - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
+#  - git fetch --unshallow
   #  - ./gradlew sonarqube -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_LOGIN
-  - ./gradlew --version
-  - ./gradle --version
-  - gradle --version
-  - ./gradle
+#  - ./gradlew --version
+#  - ./gradle --version
+#  - gradle --version
+#  - ./gradle
 
 #addons:
 #  sonarcloud: $SONAR_ORGANIZATION
