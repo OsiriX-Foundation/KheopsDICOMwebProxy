@@ -4,7 +4,7 @@ sudo: required
 services:
 
 jdk:
-  - openjdk8
+  - openjdk13
 
 notifications:
   email: false
@@ -16,6 +16,10 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+
+install:
+  - ./gradlew wrapper --gradle-version=6.0.1 --distribution-type=bin
+  - ./gradlew --version
 
 after_success:
   - export BRANCH=$TRAVIS_BRANCH
