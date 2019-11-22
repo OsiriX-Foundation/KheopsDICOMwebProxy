@@ -22,6 +22,8 @@ after_success:
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
   - git fetch --unshallow
   #  - ./gradlew sonarqube -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_LOGIN
+  - ./gradlew --version
+  - ./gradle --version
   - ./gradle
 
 #addons:
