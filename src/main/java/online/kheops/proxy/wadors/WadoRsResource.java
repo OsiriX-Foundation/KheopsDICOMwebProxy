@@ -186,6 +186,9 @@ public final class WadoRsResource {
             } catch (ProcessingException e) {
                 LOG.log(SEVERE, "ProcessingException:", e);
                 throw new IOException(e);
+            } catch (IOException e) {
+                LOG.log(SEVERE, "IOException:", e);
+                throw new IOException(e);
             }
         };
 
