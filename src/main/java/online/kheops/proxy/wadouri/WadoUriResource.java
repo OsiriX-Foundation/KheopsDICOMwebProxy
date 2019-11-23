@@ -181,6 +181,9 @@ public class WadoUriResource {
         final String studyInstanceUID = studyInstanceUIDs.get(0);
         final String seriesInstanceUID = seriesInstanceUIDs.get(0);
 
+        LOG.log(SEVERE, "about to get the SOPInstanceUID");
+
+
         final WebTarget instancesTarget = CLIENT.target(serviceURI)
                 .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances")
                 .resolveTemplate("StudyInstanceUID", studyInstanceUID)
@@ -207,6 +210,8 @@ public class WadoUriResource {
             throw new BadRequestException("can't find sopInstanceUID");
         }
 
+        LOG.log(SEVERE, "SOPInstanceUID: " + sopInstanceUID);
+
         final AccessToken accessToken;
         try {
             accessToken = AccessToken.createBuilder(authorizationURI)
@@ -223,6 +228,9 @@ public class WadoUriResource {
             throw new InternalServerErrorException("unknown error while getting an access token");
         }
 
+        LOG.log(SEVERE, "Got an access token");
+
+
         final WebTarget webTarget = CLIENT.target(serviceURI)
                 .path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances/{SOPInstanceUID}")
                 .resolveTemplate("StudyInstanceUID", studyInstanceUID)
@@ -233,7 +241,14 @@ public class WadoUriResource {
         invocationBuilder.header(AUTHORIZATION, accessToken.getHeaderValue());
 
         StreamingOutput streamingOutput = output -> {
+
+            LOG.log(SEVERE, "Starting to write the output");
+
+
             MultipartParser.Handler handler = (int partNumber, MultipartInputStream in) -> {
+
+                LOG.log(SEVERE, "handling first part");
+
                 if (partNumber != 1) {
                     LOG.log(SEVERE, "Unexpected part number:" + partNumber);
                     throw new IOException("Unexpected part number:" + partNumber);
@@ -241,18 +256,33 @@ public class WadoUriResource {
 
                 in.readHeaderParams();
 
+                LOG.log(SEVERE, "read the headers");
+
                 final DicomInputStream dicomInputStream = new DicomInputStream(in);
 
+                LOG.log(SEVERE, "got the stream");
+
                 final Attributes attributes = dicomInputStream.readDataset(-1, -1);
+
+                LOG.log(SEVERE, "read the attributes");
+
                 final byte[] documentBytes = attributes.getBytes(Tag.EncapsulatedDocument);
+
+                LOG.log(SEVERE, "got the bytes");
+
 
                 output.write(documentBytes);
             };
 
             try (final Response wadoRSResponse = webTarget.request().header(AUTHORIZATION, accessToken.getHeaderValue()).get()) {
+
+                LOG.log(SEVERE, "Got the response");
+
                 final String boundary = MediaType.valueOf(wadoRSResponse.getHeaderString(CONTENT_TYPE)).getParameters().get(BOUNDARY_PARAMETER);
                 try (final InputStream inputStream = new BufferedInputStream(wadoRSResponse.readEntity(InputStream.class))) {
                     new MultipartParser(boundary).parse(inputStream, handler);
+                    LOG.log(SEVERE, "finished parsing the multipart");
+
                 }
             } catch (ResponseProcessingException e) {
                 LOG.log(SEVERE, "ResponseProcessingException status:" + e.getResponse().getStatus(), e);
