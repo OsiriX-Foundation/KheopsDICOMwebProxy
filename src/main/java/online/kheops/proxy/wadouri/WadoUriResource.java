@@ -209,6 +209,16 @@ public class WadoUriResource {
 
         LOG.log(SEVERE, "Got an access token");
 
+        try {
+            String asString = instancesTarget.request(MediaTypes.APPLICATION_DICOM_JSON_TYPE)
+                    .header(AUTHORIZATION, accessToken.getHeaderValue())
+                    .get(String.class);
+            LOG.log(SEVERE, "asString: " + asString);
+        } catch (ProcessingException | WebApplicationException e) {
+            LOG.log(SEVERE, "Unable to get instances", e);
+            throw new ServerErrorException("Unable to get instances", BAD_GATEWAY, e);
+        }
+
         final List<Attributes> instanceList;
         try {
             instanceList = instancesTarget.request(MediaTypes.APPLICATION_DICOM_JSON_TYPE)
