@@ -123,7 +123,7 @@ public class WadoUriResource {
                         .resolveTemplate("frameNumber", frameNumber)
                         .request("image/jpeg")
                         .header(AUTHORIZATION, accessToken.getHeaderValue())
-                        .header(AUTHORIZATION, accessToken.getHeaderValue()).get(byte[].class);
+                        .get(byte[].class);
                 return Response.ok(bytes).type("image/jpeg").build();
             } catch (ProcessingException | WebApplicationException e) {
                 LOG.log(SEVERE, "wado frame rendering hack error", e);
