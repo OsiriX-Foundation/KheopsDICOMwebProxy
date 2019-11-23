@@ -52,12 +52,10 @@ public class WadoUriResource {
     @GET
     @Path("/password/dicomweb/wado")
     public Response wado(@HeaderParam(AUTHORIZATION) String authorizationHeader, @QueryParam("contentType") String contentTypeParam) {
-        if (contentTypeParam != null && contentTypeParam.equals("application/dicom")) {
-            return webAccess(AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
-        } else if (contentTypeParam != null && contentTypeParam.equals("application/pdf")) {
+        if (contentTypeParam != null && contentTypeParam.equals("application/pdf")) {
             return pdfWebAccess(AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
         } else {
-            throw new BadRequestException("Bad contentType parameter");
+            return webAccess(AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
         }
     }
 
