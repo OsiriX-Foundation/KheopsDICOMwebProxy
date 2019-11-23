@@ -9,10 +9,13 @@ import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
 import org.dcm4che3.ws.rs.MediaTypes;
 
+import javax.imageio.ImageIO;
 import javax.servlet.ServletContext;
 import javax.ws.rs.*;
 import javax.ws.rs.client.*;
 import javax.ws.rs.core.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +28,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.awt.Image.SCALE_SMOOTH;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static javax.ws.rs.core.HttpHeaders.*;
@@ -96,8 +100,10 @@ public final class WadoRsResource {
     @GET
     @Path("/password/dicomweb/studies/{studyInstanceUID:([0-9]+[.])*[0-9]+}/series/{seriesInstanceUID:([0-9]+[.])*[0-9]+}/thumbnail")
     public Response wadoSeriesThumbnail(@HeaderParam(AUTHORIZATION) String authorizationHeader,
-                                 @PathParam("studyInstanceUID") String studyInstanceUID,
-                                 @PathParam("seriesInstanceUID") String seriesInstanceUID) {
+                                    @PathParam("studyInstanceUID") String studyInstanceUID,
+                                    @PathParam("seriesInstanceUID") String seriesInstanceUID,
+                                    @QueryParam("viewport") String viewport) {
+        LOG.log(SEVERE, "viewport=" + viewport);
 
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
         final URI serviceURI = getParameterURI("online.kheops.pacs.uri");
@@ -152,11 +158,26 @@ public final class WadoRsResource {
         StreamingOutput streamingOutput = output -> {
             try (final Response renderedResponse = renderedTarget.request("image/jpeg").header(AUTHORIZATION, accessToken.getHeaderValue()).get();
                 final InputStream inputStream = new BufferedInputStream(renderedResponse.readEntity(InputStream.class))) {
-                byte[] buffer = new byte[4096];
-                int len = inputStream.read(buffer);
-                while (len != -1) {
-                    output.write(buffer, 0, len);
-                    len = inputStream.read(buffer);
+
+                if (viewport != null) {
+                    final int width = Integer.parseInt(viewport.split(",")[0]);
+                    final int height = Integer.parseInt(viewport.split(",")[1]);
+
+                    Image inputImage = ImageIO.read(inputStream);
+                    Image scaledImage = inputImage.getScaledInstance(width, height, SCALE_SMOOTH);
+                    BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D graphics = outputImage.createGraphics();
+                    graphics.drawImage(scaledImage, null, null);
+                    graphics.dispose();
+
+                    ImageIO.write(outputImage, "jpeg", output);
+                } else {
+                    byte[] buffer = new byte[4096];
+                    int len = inputStream.read(buffer);
+                    while (len != -1) {
+                        output.write(buffer, 0, len);
+                        len = inputStream.read(buffer);
+                    }
                 }
                 output.flush();
             } catch (ResponseProcessingException e) {
