@@ -226,7 +226,7 @@ public class WadoUriResource {
 
         final String sopInstanceUID = instanceList.get(0).getString(Tag.SOPInstanceUID);
         if (sopInstanceUID == null) {
-            LOG.log(WARNING, "can't find sopInstanceUID");
+            LOG.log(WARNING, "can't find sopInstanceUID in :" + instanceList.get(0));
             throw new BadRequestException("can't find sopInstanceUID");
         }
 
