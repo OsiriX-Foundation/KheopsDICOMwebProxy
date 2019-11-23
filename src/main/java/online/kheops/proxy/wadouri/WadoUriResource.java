@@ -51,21 +51,21 @@ public class WadoUriResource {
 
     @GET
     @Path("/password/dicomweb/wado")
-    public Response wado(@HeaderParam(AUTHORIZATION) String authorizationHeader, @QueryParam("contentType") String contentTypeParam) {
+    public Response wado(@HeaderParam(AUTHORIZATION) String authorizationHeader, @QueryParam("contentType") String contentTypeParam, @QueryParam("frameNumber") String frameNumberParam) {
         if (contentTypeParam != null && contentTypeParam.equals("application/pdf")) {
             return pdfWebAccess(AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
         } else {
-            return webAccess(AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
+            return webAccess(AuthorizationToken.fromAuthorizationHeader(authorizationHeader), frameNumberParam);
         }
     }
 
     @GET
     @Path("/{capability:[a-zA-Z0-9]{22}}/dicomweb/wado")
     public Response wadoWithCapability(@PathParam("capability") String capabilityToken) {
-        return webAccess(AuthorizationToken.from(capabilityToken));
+        return webAccess(AuthorizationToken.from(capabilityToken), null);
     }
 
-    private Response webAccess(AuthorizationToken authorizationToken) {
+    private Response webAccess(AuthorizationToken authorizationToken, String frameNumber) {
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
         final URI serviceURI = getParameterURI("online.kheops.pacs.uri");
 
@@ -90,8 +90,7 @@ public class WadoUriResource {
                 return Response.ok(bytes).type("image/jpeg").build();
             } catch (ProcessingException | WebApplicationException e) {
                 LOG.log(SEVERE, "wado hack error", e);
-                LOG.log(WARNING, "Missing objectUID");
-                throw new BadRequestException("Missing objectUID");
+                throw new BadRequestException("wado hack error");
             }
         }
 
@@ -113,6 +112,23 @@ public class WadoUriResource {
         } catch (Exception e) {
             LOG.log(SEVERE, "unknown error while getting an access token", e);
             throw new InternalServerErrorException("unknown error while getting an access token");
+        }
+
+        if (frameNumber != null) {
+            try {
+                byte[] bytes = CLIENT.target(serviceURI).path("/studies/{StudyInstanceUID}/series/{SeriesInstanceUID}/instances/{SOPInstanceUID}/frames/{frameNumber}/rendered")
+                        .resolveTemplate("StudyInstanceUID", studyInstanceUID)
+                        .resolveTemplate("SeriesInstanceUID", seriesInstanceUID)
+                        .resolveTemplate("SOPInstanceUID", sopInstanceUID)
+                        .resolveTemplate("frameNumber", frameNumber)
+                        .request("image/jpeg")
+                        .header(AUTHORIZATION, accessToken.getHeaderValue())
+                        .header(AUTHORIZATION, accessToken.getHeaderValue()).get(byte[].class);
+                return Response.ok(bytes).type("image/jpeg").build();
+            } catch (ProcessingException | WebApplicationException e) {
+                LOG.log(SEVERE, "wado frame rendering hack error", e);
+                throw new BadRequestException("wado frame rendering hack error");
+            }
         }
 
         final WebTarget webTarget = CLIENT.target(serviceURI)
