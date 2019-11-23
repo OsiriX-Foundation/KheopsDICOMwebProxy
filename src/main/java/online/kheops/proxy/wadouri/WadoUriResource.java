@@ -1,6 +1,7 @@
 package online.kheops.proxy.wadouri;
 
 import online.kheops.proxy.id.SeriesID;
+import online.kheops.proxy.marshaller.JSONAttributesListMarshaller;
 import online.kheops.proxy.tokens.AccessToken;
 import online.kheops.proxy.tokens.AccessTokenException;
 import online.kheops.proxy.tokens.AuthorizationToken;
@@ -34,7 +35,7 @@ import static org.glassfish.jersey.media.multipart.Boundary.BOUNDARY_PARAMETER;
 public class WadoUriResource {
     private static final Logger LOG = Logger.getLogger(WadoUriResource.class.getName());
 
-    private static final Client CLIENT = ClientBuilder.newClient();
+    private static final Client CLIENT = ClientBuilder.newClient().register(JSONAttributesListMarshaller.class);
 
     @Context
     UriInfo uriInfo;
@@ -234,9 +235,11 @@ public class WadoUriResource {
             throw new NotFoundException("Not a single instance");
         }
 
-        final String sopInstanceUID = instanceList.get(0).getString(Tag.SOPInstanceUID);
+        final Attributes instanceAttributes = instanceList.get(0);
+        LOG.log(SEVERE, "Attributes size: " + instanceAttributes.size());
+        final String sopInstanceUID = instanceAttributes.getString(Tag.SOPInstanceUID);
         if (sopInstanceUID == null) {
-            LOG.log(WARNING, "can't find sopInstanceUID in :" + instanceList.get(0));
+            LOG.log(WARNING, "can't find sopInstanceUID in :" + instanceAttributes);
             throw new BadRequestException("can't find sopInstanceUID");
         }
 
