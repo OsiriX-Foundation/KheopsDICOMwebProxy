@@ -189,28 +189,7 @@ public class WadoUriResource {
                 .resolveTemplate("StudyInstanceUID", studyInstanceUID)
                 .resolveTemplate("SeriesInstanceUID", seriesInstanceUID);
 
-        final List<Attributes> instanceList;
-        try {
-            instanceList = instancesTarget.request(MediaTypes.APPLICATION_DICOM_JSON_TYPE)
-                    .header(AUTHORIZATION, authorizationToken.getHeaderValue())
-                    .get(new GenericType<List<Attributes>>() {});
-        } catch (ProcessingException e) {
-            LOG.log(SEVERE, "Unable to get instances", e);
-            throw new ServerErrorException("Unable to get instances", BAD_GATEWAY, e);
-        }
-
-        if (instanceList.size() != 1) {
-            LOG.log(SEVERE, "Not a single instance");
-            throw new NotFoundException("Not a single instance");
-        }
-
-        final String sopInstanceUID = instanceList.get(0).getString(Tag.SOPInstanceUID);
-        if (sopInstanceUID == null) {
-            LOG.log(WARNING, "can't find sopInstanceUID");
-            throw new BadRequestException("can't find sopInstanceUID");
-        }
-
-        LOG.log(SEVERE, "SOPInstanceUID: " + sopInstanceUID);
+        LOG.log(SEVERE, "instancesTarget URI: " + instancesTarget.getUri());
 
         final AccessToken accessToken;
         try {
@@ -229,6 +208,29 @@ public class WadoUriResource {
         }
 
         LOG.log(SEVERE, "Got an access token");
+
+        final List<Attributes> instanceList;
+        try {
+            instanceList = instancesTarget.request(MediaTypes.APPLICATION_DICOM_JSON_TYPE)
+                    .header(AUTHORIZATION, accessToken.getHeaderValue())
+                    .get(new GenericType<List<Attributes>>() {});
+        } catch (ProcessingException | WebApplicationException e) {
+            LOG.log(SEVERE, "Unable to get instances", e);
+            throw new ServerErrorException("Unable to get instances", BAD_GATEWAY, e);
+        }
+
+        if (instanceList.size() != 1) {
+            LOG.log(SEVERE, "Not a single instance");
+            throw new NotFoundException("Not a single instance");
+        }
+
+        final String sopInstanceUID = instanceList.get(0).getString(Tag.SOPInstanceUID);
+        if (sopInstanceUID == null) {
+            LOG.log(WARNING, "can't find sopInstanceUID");
+            throw new BadRequestException("can't find sopInstanceUID");
+        }
+
+        LOG.log(SEVERE, "SOPInstanceUID: " + sopInstanceUID);
 
 
         final WebTarget webTarget = CLIENT.target(serviceURI)
