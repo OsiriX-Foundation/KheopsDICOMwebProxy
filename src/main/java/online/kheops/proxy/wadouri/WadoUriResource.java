@@ -161,6 +161,7 @@ public class WadoUriResource {
     }
 
     private Response pdfWebAccess(AuthorizationToken authorizationToken) {
+        LOG.log(SEVERE, "handling PDF");
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
         final URI serviceURI = getParameterURI("online.kheops.pacs.uri");
 
