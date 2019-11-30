@@ -164,7 +164,7 @@ public final class WadoRsResource {
                     final int height = Integer.parseInt(viewport.split(",")[1]);
 
                     Image inputImage = ImageIO.read(inputStream);
-                    Image scaledImage = inputImage.getScaledInstance(width, height, SCALE_SMOOTH);
+                    Image scaledImage = inputImage.getScaledInstance(width, height, SCALE_FAST);
                     BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
                     Graphics2D graphics = outputImage.createGraphics();
                     graphics.drawImage(scaledImage, null, null);
