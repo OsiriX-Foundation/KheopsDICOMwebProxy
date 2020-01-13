@@ -1,4 +1,4 @@
-FROM tomcat:9-jdk13-openjdk-oracle
+FROM tomcat:9-jdk11
 
 ARG VCS_REF
 
