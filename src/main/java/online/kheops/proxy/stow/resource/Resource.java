@@ -55,6 +55,9 @@ public final class Resource {
     private static final Logger LOG = Logger.getLogger(Resource.class.getName());
     private static final Client CLIENT = newClient();
 
+    private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
+    private static final String HEADER_X_LINK_AUTHORIZATION = "X-Link-Authorization";
+
     private static final String BOUNDARY = "Boundary-ffc9be9e668952f2e1815be2709b87827169798a";
 
     private static Client newClient() {
@@ -72,6 +75,12 @@ public final class Resource {
 
     @HeaderParam(CONTENT_TYPE)
     MediaType contentType;
+
+    @HeaderParam(HEADER_X_FORWARDED_FOR)
+    String headerXForwardedFor;
+
+    @HeaderParam(HEADER_X_LINK_AUTHORIZATION)
+    String headerXLinkAuthorization;
 
     @Context
     HttpServletRequest request;
@@ -114,7 +123,7 @@ public final class Resource {
         final URI introspectionURI = UriBuilder.fromUri(authorizationURI).path("/token/introspect").build();
         final Introspect.Response introspectResponse;
         try {
-            introspectResponse = Introspect.endpoint(context, introspectionURI).token(authorizationToken.getToken());
+            introspectResponse = Introspect.endpoint(context, introspectionURI, headerXForwardedFor).token(authorizationToken.getToken());
             if (!introspectResponse.isActive()) {
                 LOG.log(Level.WARNING, "Authorization token is not valid for writing");
                 throw new NotAuthorizedException("Bearer", "Basic");
@@ -128,11 +137,11 @@ public final class Resource {
             throw new WebApplicationException(Response.status(BAD_GATEWAY).build());
         }
 
-        final FetchRequester fetchRequester = FetchRequester.newFetchRequester(authorizationURI, authorizationToken);
-        final AuthorizationManager authorizationManager = new AuthorizationManager(authorizationURI, authorizationToken, albumId);
+        final FetchRequester fetchRequester = FetchRequester.newFetchRequester(authorizationURI, authorizationToken, albumId);
+        final AuthorizationManager authorizationManager = new AuthorizationManager(authorizationURI, authorizationToken, albumId, headerXLinkAuthorization);
 
         try (InputStream inputStream = getConvertedInputStream(request.getInputStream())) {
-            final Proxy proxy = new Proxy(providers, getConvertedContentType(), inputStream, authorizationManager, fetchRequester::addStudies);
+            final Proxy proxy = new Proxy(providers, getConvertedContentType(), inputStream, authorizationManager, fetchRequester::addSeries);
             return processProxy(proxy, authorizationManager, studyInstanceUID, introspectResponse);
         } catch (IOException e) {
             LOG.log(Level.WARNING, "", e);

@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,20 +42,22 @@ public final class WadoRsResource {
 
     private static final Client CLIENT = ClientBuilder.newClient().register(JSONAttributesListMarshaller.class);
 
+    private static final String HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
+
     @Context
     UriInfo uriInfo;
 
     @Context
     ServletContext context;
 
-    @Context
-    HttpHeaders httpHeaders;
-
     @HeaderParam(ACCEPT)
     String acceptParam;
 
     @HeaderParam(ACCEPT_CHARSET)
     String acceptCharsetParam;
+
+    @HeaderParam(HEADER_X_FORWARDED_FOR)
+    String headerXForwardedFor;
 
     @GET
     @Path("/password/dicomweb/studies/{studyInstanceUID:([0-9]+[.])*[0-9]+}/series/{seriesInstanceUID:([0-9]+[.])*[0-9]+}")
@@ -213,15 +216,9 @@ public final class WadoRsResource {
                                         @PathParam("framesInstanceUID") String framesInstanceUID) {
         return webAccess(studyInstanceUID, seriesInstanceUID, AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
     }
-    
-    //@GET
-    //@Path("/password/dicomweb/studies/{studyInstanceUID:([0-9]+[.])*[0-9]+}/series/{seriesInstanceUID:([0-9]+[.])*[0-9]+}/instances")
-    //public Response wadoInstances(@HeaderParam(AUTHORIZATION) String authorizationHeader,
-    //                             @PathParam("studyInstanceUID") String studyInstanceUID,
-    //                             @PathParam("seriesInstanceUID") String seriesInstanceUID) {
-    //    return webAccess(studyInstanceUID, seriesInstanceUID, AuthorizationToken.fromAuthorizationHeader(authorizationHeader));
-    //}    
-    
+
+    final static AtomicInteger closeCounter = new AtomicInteger();
+
     private Response webAccess(String studyInstanceUID, String seriesInstanceUID, AuthorizationToken authorizationToken) {
         final URI authorizationURI = getParameterURI("online.kheops.auth_server.uri");
         URI wadoServiceURI = getParameterURI("online.kheops.pacs.uri");
@@ -234,6 +231,7 @@ public final class WadoRsResource {
                     .withClientSecret(context.getInitParameter("online.kheops.client.dicomwebproxysecret"))
                     .withCapability(authorizationToken.getToken())
                     .withSeriesID(new SeriesID(studyInstanceUID, seriesInstanceUID))
+                    .xForwardedFor(headerXForwardedFor)
                     .build();
         } catch (AccessTokenException e) {
             LOG.log(WARNING, "Unable to get an access token", e);
@@ -269,6 +267,7 @@ public final class WadoRsResource {
         final Response upstreamResponse;
         try {
             upstreamResponse = invocationBuilder.get();
+            LOG.log(SEVERE, "closeCounter:" + closeCounter.getAndIncrement());
         } catch (ProcessingException e) {
             LOG.log(SEVERE, "error processing response from upstream", e);
             throw new WebApplicationException(BAD_GATEWAY);
@@ -289,6 +288,7 @@ public final class WadoRsResource {
                 throw new IOException(e);
             } finally {
                 upstreamResponse.close();
+                closeCounter.decrementAndGet();
             }
         };
 
