@@ -15,6 +15,16 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
+    <filter>
+        <filter-name>request-dumper-filter</filter-name>
+        <filter-class>org.apache.catalina.filters.RequestDumperFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>request-dumper-filter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
     <context-param>
         <description>Base URI for the pacs</description>
         <param-name>online.kheops.pacs.uri</param-name>
