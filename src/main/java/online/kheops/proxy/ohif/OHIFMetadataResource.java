@@ -88,6 +88,7 @@ public class OHIFMetadataResource {
 
         return String.format("{\n" +
                 "   \"transactionId\":\"testDICOMs\",\n" +
+                "   \"routerBasename\":\"/ohif\",\n" +
                 "   \"servers\": {\n" +
                 "      \"dicomWeb\": [\n" +
                 "         {\n" +
