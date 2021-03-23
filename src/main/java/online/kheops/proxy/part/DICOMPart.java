@@ -8,6 +8,7 @@ import javax.ws.rs.ext.Providers;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.function.Predicate;
 
 class DICOMPart extends DICOMMetadataPart {
 
@@ -19,6 +20,6 @@ class DICOMPart extends DICOMMetadataPart {
         final DicomInputStream dicomInputStream = new DicomInputStream(inputStream);
         dicomInputStream.setIncludeBulkData(DicomInputStream.IncludeBulkData.NO);
 
-        return dicomInputStream.readDataset(-1, -1);
+        return dicomInputStream.readDataset(-1, o -> false);
     }
 }
