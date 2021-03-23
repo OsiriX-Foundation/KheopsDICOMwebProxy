@@ -11,7 +11,4 @@ LABEL org.label-schema.vcs-ref=$VCS_REF \
 
 COPY --from=build /home/gradle/capabilities/build/libs/capabilities.war /usr/local/tomcat/webapps/capabilities.war
 COPY setenv.sh $CATALINA_HOME/bin/setenv.sh
-COPY kheops-entrypoint.sh /kheops-entrypoint.sh
 
-CMD ["catalina.sh", "run"]
-ENTRYPOINT ["/kheops-entrypoint.sh"]
